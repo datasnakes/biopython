@@ -73,6 +73,69 @@ def SimpleFastaParser(handle):
     assert False, "Should not reach this line"
 
 
+def FastaTwoLineParser(handle):
+    """Generator function for two-line-per-record FASTA format.
+
+    Iterate over no-wrapping Fasta records as string tuples.
+
+    Functionally the same as SimpleFastaParser but with a strict
+    interpretation of the FASTA format as exactly two lines per
+    record, the greater-than-sign identifier with description,
+    and the sequence with no line wrapping.
+
+    Any line wrapping will raise an exception, as will excess blank
+    lines (other than the special case of a zero-length sequence
+    as the second line of a record).
+
+    Examples
+    --------
+    This file uses two lines per FASTA record:
+
+    >>> with open("Fasta/aster_no_wrap.pro") as handle:
+    ...     for title, seq in FastaTwoLineParser(handle):
+    ...         print("%s = %s..." % (title, seq[:3]))
+    ...
+    gi|3298468|dbj|BAA31520.1| SAMIPF = GGH...
+
+    This equivalent file uses line wrapping:
+
+    >>> with open("Fasta/aster.pro") as handle:
+    ...     for title, seq in FastaTwoLineParser(handle):
+    ...         print("%s = %s..." % (title, seq[:3]))
+    ...
+    Traceback (most recent call last):
+       ...
+    ValueError: Expected FASTA record starting with '>' character. Perhaps this file is using FASTA line wrapping? Got: 'MTFGLVYTVYATAIDPKKGSLGTIAPIAIGFIVGANI'
+
+    """
+    line = handle.readline()
+    # If this is an empty file, while loop is skipped.
+    while line:
+        if line[0] != ">":
+            if line.strip():
+                raise ValueError("Expected FASTA record starting with '>' character. "
+                                 "Perhaps this file is using FASTA line wrapping? "
+                                 "Got: %r" % line)
+            else:
+                raise ValueError("Expected FASTA record starting with '>' character. "
+                                 "If using two-lines-per-record, there should be no "
+                                 "blank lines between records, or at the end of file.")
+        title = line[1:].rstrip()
+        line = handle.readline()
+        if not line:
+            raise ValueError("Premature end of FASTA file (or this is not strict "
+                             "two-line-per-record FASTA format), expected one line "
+                             "of sequence following: '>%s'" % title)
+        elif line[0] == ">":
+            raise ValueError("Two '>' FASTA lines in a row. Missing sequence line "
+                             "if this is strict two-line-per-record FASTA format. "
+                             "Have '>%s' and '%s'" % (title, line))
+        yield title, line.strip()
+        line = handle.readline()
+
+    assert not line, "Should be at end of file, but line=%r" % line
+
+
 def FastaIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
     """Generator function to iterate over Fasta records (as SeqRecord objects).
 
@@ -128,6 +191,30 @@ def FastaIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
                 first_word = ""
             yield SeqRecord(Seq(sequence, alphabet),
                             id=first_word, name=first_word, description=title)
+
+
+def FastaTwoLineIterator(handle, alphabet=single_letter_alphabet):
+    """Iterate over two-line Fasta records (as SeqRecord objects).
+
+    Arguments:
+     - handle - input file
+     - alphabet - optional alphabet
+
+    This uses a strict interpretation of the FASTA as requiring
+    exactly two lines per record (no line wrapping).
+
+    Only the default title to ID/name/description parsing offered
+    by the relaxed FASTA parser is offered.
+    """
+    for title, sequence in FastaTwoLineParser(handle):
+        try:
+            first_word = title.split(None, 1)[0]
+        except IndexError:
+            assert not title, repr(title)
+            # Should we use SeqRecord default for no ID?
+            first_word = ""
+        yield SeqRecord(Seq(sequence, alphabet),
+                        id=first_word, name=first_word, description=title)
 
 
 class FastaWriter(SequentialSequenceWriter):
@@ -209,6 +296,49 @@ class FastaWriter(SequentialSequenceWriter):
                 self.handle.write(data[i:i + self.wrap] + "\n")
         else:
             self.handle.write(data + "\n")
+
+
+class FastaTwoLineWriter(FastaWriter):
+    """Class to write 2-line per record Fasta format files.
+
+    This means we write the sequence information  without line
+    wrapping, and will always write a blank line for an empty
+    sequence.
+    """
+
+    def __init__(self, handle, record2title=None):
+        """Create a Fasta writer.
+
+        Arguments:
+         - handle - Handle to an output file, e.g. as returned
+           by open(filename, "w")
+         - record2title - Optional function to return the text to be
+           used for the title line of each record.  By default
+           a combination of the record.id and record.description
+           is used.  If the record.description starts with the
+           record.id, then just the record.description is used.
+
+        You can either use::
+
+            handle = open(filename, "w")
+            writer = FastaWriter(handle)
+            writer.write_file(myRecords)
+            handle.close()
+
+        Or, follow the sequential file writer system, for example::
+
+            handle = open(filename, "w")
+            writer = FastaWriter(handle)
+            writer.write_header() # does nothing for Fasta files
+            ...
+            Multiple writer.write_record() and/or writer.write_records() calls
+            ...
+            writer.write_footer() # does nothing for Fasta files
+            handle.close()
+
+        """
+        super(FastaTwoLineWriter, self).__init__(handle, wrap=None,
+                                                 record2title=record2title)
 
 
 if __name__ == "__main__":

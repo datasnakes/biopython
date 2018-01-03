@@ -276,6 +276,8 @@ names are also used in Bio.AlignIO and include the following:
     - fasta   - The generic sequence file format where each record starts with
       an identifer line starting with a ">" character, followed by
       lines of sequence.
+    - fasta-2line - Stricter interpretation of the FASTA format using exactly
+      two lines per record (no line wrapping).
     - fastq   - A "FASTA like" format used by Sanger which also stores PHRED
       sequence quality values (with an ASCII offset of 33).
     - fastq-sanger - An alias for "fastq" for consistency with BioPerl and EMBOSS
@@ -399,6 +401,7 @@ from . import UniprotIO
 # Most alignment file formats will be handled via Bio.AlignIO
 
 _FormatToIterator = {"fasta": FastaIO.FastaIterator,
+                     "fasta-2line": FastaIO.FastaTwoLineIterator,
                      "gb": InsdcIO.GenBankIterator,
                      "genbank": InsdcIO.GenBankIterator,
                      "genbank-cds": InsdcIO.GenBankCdsFeatureIterator,
@@ -428,6 +431,7 @@ _FormatToIterator = {"fasta": FastaIO.FastaIterator,
                      }
 
 _FormatToWriter = {"fasta": FastaIO.FastaWriter,
+                   "fasta-2line": FastaIO.FastaTwoLineWriter,
                    "gb": InsdcIO.GenBankWriter,
                    "genbank": InsdcIO.GenBankWriter,
                    "embl": InsdcIO.EmblWriter,

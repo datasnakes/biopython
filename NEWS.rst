@@ -36,6 +36,10 @@ for its existing reverse_complement method etc.
 The output of function ``format_alignment`` in ``Bio.pairwise2`` for displaying
 a pairwise sequence alignment as text now indicates gaps and mis-matches.
 
+Bio.SeqIO now supports reading and writing two-line-per-record FASTA files
+under the format name "fasta-2line", useful if you wish to work without
+line-wrapped sequences.
+
 Bio.PDB now contains a writer for the mmCIF file format, which has been the
 standard PDB archive format since 2014. This allows structural objects to be
 written out and facilitates conversion between the PDB and mmCIF file formats.
@@ -49,6 +53,11 @@ November 2017 release of REBASE.
 In this release more of our code is now explicitly available under either our
 original "Biopython License Agreement", or the very similar but more commonly
 used "3-Clause BSD License".  See the ``LICENSE.rst`` file for more details.
+
+IO functions such as SeqIO.read now support objects conforming to
+`PEP 519 <https://www.python.org/dev/peps/pep-0519/>`_, allowing users to pass
+``pathlib.Path`` objects to these functions in addition to strings and open
+file handles.
 
 Additionally, a number of small bugs and typos have been fixed with further
 additions to the test suite, and there has been further work to follow the
@@ -85,7 +94,9 @@ possible, especially the following contributors:
 - Stefans Mezulis
 - Steve Bond
 - Yasar L. Ahmed (first contribution)
+- Zachary Sailer (first contribution)
 - Zaid Ur-Rehman (first contribution)
+
 
 
 10 July 2017: Biopython 1.70
